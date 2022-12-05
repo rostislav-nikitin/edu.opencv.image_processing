@@ -1,0 +1,98 @@
+#include <iostream>
+#include <math.h>
+#include <opencv2/core.hpp>
+#include <opencv2/highgui.hpp>
+#include <opencv2/imgcodecs.hpp>
+#include <opencv2/imgproc.hpp>
+
+class ColorDetector
+{
+private:
+
+	cv::Vec3b _target_color;
+	int _max_distance;
+
+	int getDistance(cv::Vec3b color)
+	{
+		return abs(color[0] - _target_color[0]) +
+			abs(color[1] - _target_color[1]) +
+			abs(color[2] - _target_color[2]);
+	}
+public:
+
+	ColorDetector(uchar blue, uchar green, uchar red, int max_distance = 100) : _target_color{blue, green, red}, _max_distance{max_distance}
+	{
+	}
+
+	ColorDetector(cv::Vec3b target_color, int max_distance = 100) :
+			_target_color{target_color}, _max_distance{max_distance}
+	{
+	}
+
+	void setTargetColor(uchar blue, uchar green, uchar red)
+	{
+		_target_color = cv::Vec3b{blue, green, red};
+	}
+
+	cv::Mat process(cv::Mat image)
+	{
+		cv::Mat result;
+		result.create(image.size(), CV_8U);
+
+		cv::Mat_<cv::Vec3b>::iterator it_begin = image.begin<cv::Vec3b>();
+		cv::Mat_<cv::Vec3b>::iterator it_end = image.end<cv::Vec3b>();
+		cv::Mat_<uchar>::iterator it_output = result.begin<uchar>();
+
+		while(it_begin != it_end)
+		{
+			cv::Vec3b current_color = *it_begin;
+
+			if(getDistance(current_color) < _max_distance)
+			{
+				*it_output = 255;
+			}
+			else
+			{
+				*it_output = 0;
+			}
+
+			it_begin++;
+			it_output++;
+		}
+
+		return result;
+	}
+
+
+	cv::Mat operator()(cv::Mat image)
+	{
+		return process(image);
+	}
+
+
+
+};
+
+
+int main()
+{
+	cv::Mat image = cv::imread("puppy-800x452.bmp");
+
+	cv::namedWindow("Original");
+	cv::imshow("Original", image);
+
+	cv::Mat result = ColorDetector{77, 115, 153, 80}(image);
+
+//	cv::Mat result = color_detector(image);
+
+	image.copyTo(result, result);
+
+
+
+	cv::namedWindow("Result");
+	cv::imshow("Result", result);
+
+	cv::waitKey(0);
+
+	return 0;
+}
